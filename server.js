@@ -1,5 +1,4 @@
-const express = require("express");
-const { createGameState, gameLoop } = require("./game");
+const { createGameState, joinGameState, gameLoop } = require("./game");
 const frameRate = 30;
 const io = require("socket.io")(5000, {
 	cors: {
@@ -8,12 +7,23 @@ const io = require("socket.io")(5000, {
 });
 
 io.on("connection", socket => {
-	const state = createGameState();
-	socket.on("createRoom", state => {
-		state = JSON.parse(state);
-		console.log(state);
+	socket.on("createRoom", player => {
+		player = JSON.parse(player);
+		state = createGameState(socket, player);
 	});
-	//startGameInterval(socket, state);
+
+	socket.on("joinRoom", player => {
+		player = JSON.parse(player);
+		state = joinGameState(socket, player);
+	});
+
+	socket.on("startGame", msg => {
+		startGameInterval(socket, state);
+	});
+
+	socket.on("payAirfare", fare => {
+		payAirfare(fare, state);
+	});
 });
 
 function startGameInterval(socket, state) {
@@ -24,7 +34,17 @@ function startGameInterval(socket, state) {
 			socket.emit("gameState", JSON.stringify(state));
 		} else {
 			socket.emit("gameOver");
+			clearInterval(intervalId);
 		}
-		clearInterval(intervalId);
 	}, 1000 / frameRate);
+}
+
+function payAirfare(fare, state) {
+	try {
+		fare = parseInt(fare);
+	} catch (error) {
+		console.log(error);
+		return;
+	}
+	state.player.gold = state.player.gold - fare;
 }
