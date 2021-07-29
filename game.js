@@ -1,8 +1,27 @@
-function createGameState() {
+function createGameState(socket, player) {
 	return {
-		code: "",
+		roomCode: socket.id,
 		player: {
-			team: "",
+			playerId: socket.id,
+			playerName: player.playerName,
+			teamName: player.teamName,
+			gold: 1000000,
+			inventory: [],
+			playerCoordinates: {
+				longitude: 0,
+				latitude: 0,
+			},
+		},
+	};
+}
+
+function joinGameState(socket, player) {
+	return {
+		roomCode: player.hostCode,
+		player: {
+			playerId: socket.id,
+			playerName: player.playerName,
+			teamName: player.teamName,
 			gold: 1000000,
 			inventory: [],
 			playerCoordinates: {
@@ -22,4 +41,5 @@ function gameLoop(state) {
 module.exports = {
 	createGameState,
 	gameLoop,
+	joinGameState,
 };
