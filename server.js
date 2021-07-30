@@ -6,32 +6,46 @@ const io = require("socket.io")(5000, {
 	},
 });
 
+var mod = require("./constants");
+var rooms = mod.rooms;
+
 io.on("connection", socket => {
+	//create a game room event
 	socket.on("createRoom", player => {
 		player = JSON.parse(player);
-		state = createGameState(socket, player);
+		createGameState(socket, player);
 	});
 
+	//join a game room event
 	socket.on("joinRoom", player => {
 		player = JSON.parse(player);
-		state = joinGameState(socket, player);
+		joinGameState(socket, player);
 	});
 
-	socket.on("startGame", msg => {
-		startGameInterval(socket, state);
+	//start a game event
+	socket.on("startGame", client => {
+		rooms.forEach(room => {
+			room.players.forEach(player => {
+				if (player.playerId === client) {
+					startGameInterval(client, room, socket);
+				}
+			});
+		});
 	});
 
-	socket.on("payAirfare", fare => {
-		payAirfare(fare, state);
+	// air fare game mech event
+	socket.on("payAirfare", flightData => {
+		flightData = JSON.parse(flightData);
+		payAirfare(flightData, rooms);
 	});
 });
 
-function startGameInterval(socket, state) {
+function startGameInterval(client, room, socket) {
 	const intervalId = setInterval(() => {
-		const winner = gameLoop(state);
+		const winner = gameLoop(room);
 
 		if (!winner) {
-			socket.emit("gameState", JSON.stringify(state));
+			socket.emit("gameState", JSON.stringify(room));
 		} else {
 			socket.emit("gameOver");
 			clearInterval(intervalId);
@@ -39,12 +53,18 @@ function startGameInterval(socket, state) {
 	}, 1000 / frameRate);
 }
 
-function payAirfare(fare, state) {
-	try {
-		fare = parseInt(fare);
-	} catch (error) {
-		console.log(error);
-		return;
-	}
-	state.player.gold = state.player.gold - fare;
+function payAirfare(flightData, rooms) {
+	const { clientId, fare } = flightData;
+
+	rooms.forEach(room => {
+		try {
+			room.players.forEach(player => {
+				if (player.playerId === clientId) {
+					player.gold = player.gold - fare;
+				}
+			});
+		} catch (err) {
+			console.log(err);
+		}
+	});
 }

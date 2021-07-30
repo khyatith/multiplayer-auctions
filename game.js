@@ -1,7 +1,9 @@
+var mod = require("./constants");
+var rooms = mod.rooms;
+
 function createGameState(socket, player) {
-	return {
-		roomCode: socket.id,
-		player: {
+	try {
+		let playerObj = {
 			playerId: socket.id,
 			playerName: player.playerName,
 			teamName: player.teamName,
@@ -11,14 +13,19 @@ function createGameState(socket, player) {
 				longitude: 0,
 				latitude: 0,
 			},
-		},
-	};
+		};
+		rooms.push({
+			roomCode: socket.id,
+			players: [playerObj],
+		});
+	} catch (err) {
+		console.log(err);
+	}
 }
 
 function joinGameState(socket, player) {
-	return {
-		roomCode: player.hostCode,
-		player: {
+	try {
+		let playerObj = {
 			playerId: socket.id,
 			playerName: player.playerName,
 			teamName: player.teamName,
@@ -28,8 +35,18 @@ function joinGameState(socket, player) {
 				longitude: 0,
 				latitude: 0,
 			},
-		},
-	};
+		};
+
+		rooms.forEach(room => {
+			if (room.roomCode === player.hostCode) {
+				room.players.push(playerObj);
+			} else {
+				console.log("not found");
+			}
+		});
+	} catch (err) {
+		console.log(err);
+	}
 }
 
 function gameLoop(state) {
